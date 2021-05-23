@@ -2,28 +2,53 @@ import {useEffect, useState, useContext} from 'react';
 import {Link, useHistory} from 'react-router-dom';
 import FireBaseContext from '../contexts/firebase';
 import * as ROUTES from "../constants/Routes";
-export default function Login(){
+import {doesUsernameExists} from '../services/firebase';
+export default function SignUp(){
     const history = useHistory();
     const {firebase} = useContext(FireBaseContext);
+    const [username, setUsername] = useState('');
+    const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const isInValid = password === "" || email === "";
 
-    const handleLogin = async (event) => {
+    const handleSignUp = async (event) => {
       event.preventDefault();
-      try {
-        await firebase.auth().signInWithEmailAndPassword(email, password);
-        history.push(ROUTES.DASHBOARD)
-      } catch (error) {
-        setEmail('')
-        setPassword('')
-        setError(error.message);
+      const usernameExists = await doesUsernameExists(username);
+      if (!usernameExists) {
+        try {
+            const createUserResponse = await firebase.auth().createUserWithEmailAndPassword(email, password);    
+            //authentication
+            // -> emailAddress & password & username
+            await createUserResponse.user.updateProfile({
+                displayName : username
+            });
+
+            await firebase.firestore().collection('users').add({
+                userId: createUserResponse.user.uid,
+                username: username.toLowerCase(),
+                fullName,
+                emailAddress: email.toLowerCase(),
+                following:['2'],
+                followers:[],
+                dateCreated: Date.now()
+            })
+          history.push(ROUTES.DASHBOARD)
+        } catch (error) {
+          setUsername('');
+          setFullName('');
+          setEmail('');
+          setPassword('');
+          setError(error.message);
+          console.log(error);
+        }
       }
+      
     }
 
     useEffect(() => {
-        document.title = "Login - Instagram"
+        document.title = "Sign Up - Instagram"
     }, [])
     return(
         <div className="container flex mx-auto max-w-screen-md items-center h-screen">
@@ -37,8 +62,22 @@ export default function Login(){
           </h1>
 
           {error && <p className="mb-4 text-xs text-red-primary">{error}</p>}
-
-          <form onSubmit={handleLogin} method="POST">
+          <form onSubmit={handleSignUp} method="POST">
+          <input
+              aria-label="Enter your username"
+              type="text"
+              placeholder="username"
+              className="text-sm text-gray-base w-full mr-3 py-5 px-4 h-2 border border-gray-primary rounded mb-2"
+              onChange = {({target}) => {setUsername(target.value)}}
+            />
+         <input
+              aria-label="Enter your full name"
+              type="text"
+              placeholder="fullname"
+              className="text-sm text-gray-base w-full mr-3 py-5 px-4 h-2 border border-gray-primary rounded mb-2"
+              onChange = {({target}) => {setFullName(target.value)}}
+            />
+         
           <input
               aria-label="Enter your email address"
               type="text"
@@ -59,15 +98,15 @@ export default function Login(){
             className={`bg-blue-medium text-white w-full rounded h-8 font-bold
             ${isInValid && 'opacity-50'}`}
             >
-              Login  
+              Sign Up
             </button>
           </form>
         </div>
         <div className = "flex justify-center items-center flex-col w-full bg-white p-4 rounded border border-gray-primary">
           <p className="text-sm">
-            Don't have an account? {` `}
-            <Link to={ROUTES.SIGN_UP} className="font-bold text-blue-medium">
-              Sign up
+            Have an account? {` `}
+            <Link to={ROUTES.LOGIN} className="font-bold text-blue-medium">
+              Login
             </Link>
           </p>
         </div>
