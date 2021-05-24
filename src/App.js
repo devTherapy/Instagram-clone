@@ -11,14 +11,15 @@ const NotFound = lazy(() => import("./pages/not-found"));
 const Profile = lazy(() => import("./pages/profile.js"));
 
 function App() {
-  const {User} = useAuthListener();
+  const {user} = useAuthListener();
   return(
-    <UserContext.Provider value = {User}>
+    <UserContext.Provider value = {{user}}>
     <Router>
     <Suspense fallback={<p>loading......</p>}>
     <Switch>
       <Route path= {ROUTES.LOGIN} component={Login}/>
       <Route path= {ROUTES.SIGN_UP} component={SignUp}/>
+      <Route path= {ROUTES.DASHBOARD} component={Dashboard}/>
       <Route component = {NotFound}/>
     </Switch>
     </Suspense>
